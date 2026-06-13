@@ -2,8 +2,11 @@
 
 **Cross-platform, fully offline Speech-to-Text API pipeline for Voice AI integration.**
 
+**[Try the Live App → https://offlinestt.com](https://offlinestt.com)**
+
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
+![Live](https://img.shields.io/badge/live-offlinestt.com-cyan.svg)
 
 Offline STT Pipeline is a lightweight desktop application and service that runs a local OpenAI-compatible REST API for speech-to-text transcription. It acts as a drop-in replacement for cloud STT services, allowing Voice AI applications to process audio locally without internet access, saving on API costs and ensuring absolute privacy.
 
