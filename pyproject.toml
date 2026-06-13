@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "offline-stt-pipeline"
+version = "1.0.0"
+description = "Cross-platform offline Speech-to-Text API pipeline for Voice AI integration"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Offline STT Pipeline Contributors"},
+]
+keywords = ["speech-to-text", "stt", "whisper", "offline", "voice-ai", "api"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "faster-whisper>=1.0.0",
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "python-multipart>=0.0.6",
+    "pydantic>=2.0.0",
+    "numpy>=1.24.0",
+]
+
+[project.optional-dependencies]
+cuda = ["ctranslate2[cuda]>=4.0.0"]
+dev = [
+    "pytest>=7.0.0",
+    "httpx>=0.25.0",
+    "pyinstaller>=6.0.0",
+]
+
+[project.scripts]
+offline-stt = "src.main:main"
+
+[project.urls]
+Homepage = "https://github.com/offline-stt-pipeline/offline-stt-pipeline"
+Repository = "https://github.com/offline-stt-pipeline/offline-stt-pipeline"
+Issues = "https://github.com/offline-stt-pipeline/offline-stt-pipeline/issues"
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
+[tool.setuptools.package-data]
+"src.ui" = ["templates/**/*", "static/**/*"]

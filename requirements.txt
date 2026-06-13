@@ -1,0 +1,15 @@
+# Core dependencies
+faster-whisper>=1.0.0
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+pydantic>=2.0.0
+numpy>=1.24.0
+
+# Optional: for CUDA support (uncomment if needed)
+# ctranslate2[cuda]>=4.0.0
+
+# Development dependencies
+# pytest>=7.0.0
+# httpx>=0.25.0
+# pyinstaller>=6.0.0

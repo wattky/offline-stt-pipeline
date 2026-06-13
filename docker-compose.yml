@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  offline-stt:
+    build: .
+    container_name: offline-stt-pipeline
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist downloaded models
+      - ./models:/app/models
+    environment:
+      - MODELS_DIR=/app/models
+    restart: unless-stopped
+    
+  # GPU-enabled variant (NVIDIA)
+  offline-stt-gpu:
+    build: .
+    container_name: offline-stt-pipeline-gpu
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models
+    environment:
+      - MODELS_DIR=/app/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: ["--host", "0.0.0.0", "--port", "8000", "--device", "cuda", "--no-browser"]
+    restart: unless-stopped
+    profiles:
+      - gpu

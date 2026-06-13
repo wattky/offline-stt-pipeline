@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline STT Pipeline</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * { font-family: 'Inter', sans-serif; }
+        
+        body {
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        
+        .glass-card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .recording {
+            animation: recording-pulse 1.5s infinite;
+        }
+        
+        @keyframes recording-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+        }
+        
+        .waveform-bar {
+            animation: waveform 0.8s ease-in-out infinite;
+        }
+        
+        .waveform-bar:nth-child(2) { animation-delay: 0.1s; }
+        .waveform-bar:nth-child(3) { animation-delay: 0.2s; }
+        .waveform-bar:nth-child(4) { animation-delay: 0.3s; }
+        .waveform-bar:nth-child(5) { animation-delay: 0.4s; }
+        
+        @keyframes waveform {
+            0%, 100% { height: 8px; }
+            50% { height: 24px; }
+        }
+        
+        .model-card:hover {
+            transform: translateY(-2px);
+            transition: all 0.2s ease;
+        }
+        
+        textarea:focus, input:focus, select:focus {
+            outline: none;
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <div class="flex items-center justify-center gap-3 mb-4">
+                <svg class="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                </svg>
+                <h1 class="text-3xl font-bold gradient-text">Offline STT Pipeline</h1>
+            </div>
+            <p class="text-slate-400 text-lg">Local Speech-to-Text API for Voice AI Integration</p>
+            <div class="flex items-center justify-center gap-2 mt-3">
+                <span id="status-dot" class="w-2 h-2 rounded-full bg-yellow-400 pulse-dot"></span>
+                <span id="status-text" class="text-sm text-slate-400">Checking status...</span>
+            </div>
+        </header>
+
+        <!-- Main Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Left Column: Transcription -->
+            <div class="lg:col-span-2 space-y-6">
+                
+                <!-- Recording / Upload Card -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                        </svg>
+                        Transcribe Audio
+                    </h2>
+                    
+                    <!-- Tab Buttons -->
+                    <div class="flex gap-2 mb-4">
+                        <button id="tab-record" onclick="switchTab('record')" class="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium">
+                            Record
+                        </button>
+                        <button id="tab-upload" onclick="switchTab('upload')" class="px-4 py-2 rounded-lg bg-slate-700 text-slate-300 text-sm font-medium hover:bg-slate-600">
+                            Upload File
+                        </button>
+                    </div>
+                    
+                    <!-- Record Panel -->
+                    <div id="panel-record" class="space-y-4">
+                        <div class="flex items-center justify-center py-8">
+                            <button id="btn-record" onclick="toggleRecording()" class="w-20 h-20 rounded-full bg-slate-700 hover:bg-red-600 transition-all flex items-center justify-center">
+                                <svg id="icon-mic" class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                                </svg>
+                                <svg id="icon-stop" class="w-8 h-8 text-white hidden" fill="currentColor" viewBox="0 0 24 24">
+                                    <rect x="6" y="6" width="12" height="12" rx="2"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div id="waveform" class="hidden flex items-center justify-center gap-1 py-2">
+                            <div class="waveform-bar w-1 bg-red-400 rounded-full"></div>
+                            <div class="waveform-bar w-1 bg-red-400 rounded-full"></div>
+                            <div class="waveform-bar w-1 bg-red-400 rounded-full"></div>
+                            <div class="waveform-bar w-1 bg-red-400 rounded-full"></div>
+                            <div class="waveform-bar w-1 bg-red-400 rounded-full"></div>
+                        </div>
+                        <p class="text-center text-sm text-slate-400" id="record-status">Click to start recording</p>
+                    </div>
+                    
+                    <!-- Upload Panel -->
+                    <div id="panel-upload" class="hidden space-y-4">
+                        <div class="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:border-blue-400 transition-colors">
+                            <input type="file" id="file-input" accept="audio/*,.wav,.mp3,.m4a,.flac,.ogg,.webm" class="hidden" onchange="handleFileSelect(event)">
+                            <label for="file-input" class="cursor-pointer">
+                                <svg class="w-12 h-12 mx-auto text-slate-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                </svg>
+                                <p class="text-slate-400">Drop audio file here or <span class="text-blue-400">browse</span></p>
+                                <p class="text-xs text-slate-500 mt-1">Supports: WAV, MP3, M4A, FLAC, OGG, WebM</p>
+                            </label>
+                        </div>
+                        <div id="file-info" class="hidden text-sm text-slate-400"></div>
+                        <button id="btn-transcribe" onclick="transcribeFile()" class="hidden w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+                            Transcribe
+                        </button>
+                    </div>
+                    
+                    <!-- Options -->
+                    <div class="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-700">
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">Language</label>
+                            <select id="opt-language" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm">
+                                <option value="auto">Auto-detect</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">Output Format</label>
+                            <select id="opt-format" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm">
+                                <option value="json">JSON</option>
+                                <option value="text">Plain Text</option>
+                                <option value="verbose_json">Verbose JSON</option>
+                                <option value="srt">SRT Subtitles</option>
+                                <option value="vtt">VTT Subtitles</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Results Card -->
+                <div class="glass-card rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold flex items-center gap-2">
+                            <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Result
+                        </h2>
+                        <button onclick="copyResult()" class="text-sm text-slate-400 hover:text-white flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                            Copy
+                        </button>
+                    </div>
+                    <div id="result-area" class="bg-slate-800 rounded-xl p-4 min-h-[120px] text-slate-300 text-sm whitespace-pre-wrap">
+                        <span class="text-slate-500 italic">Transcription results will appear here...</span>
+                    </div>
+                    <div id="result-meta" class="hidden mt-3 flex gap-4 text-xs text-slate-500">
+                        <span id="meta-language"></span>
+                        <span id="meta-duration"></span>
+                        <span id="meta-time"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column: Models & Info -->
+            <div class="space-y-6">
+                
+                <!-- Server Info Card -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"/>
+                        </svg>
+                        Server
+                    </h2>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">API Endpoint</span>
+                            <code class="text-blue-300 text-xs">localhost:8000</code>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Device</span>
+                            <span id="info-device" class="text-slate-300">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Active Model</span>
+                            <span id="info-model" class="text-slate-300">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Requests</span>
+                            <span id="info-requests" class="text-slate-300">0</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-700">
+                        <a href="/docs" target="_blank" class="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                            Open API Documentation
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Models Card -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
+                        </svg>
+                        Models
+                    </h2>
+                    <div id="models-list" class="space-y-3">
+                        <p class="text-sm text-slate-500">Loading models...</p>
+                    </div>
+                </div>
+                
+                <!-- Quick Integration Card -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                        </svg>
+                        Quick Integration
+                    </h2>
+                    <div class="bg-slate-800 rounded-lg p-3 text-xs font-mono text-slate-300 overflow-x-auto">
+                        <pre>curl -X POST \
+  http://localhost:8000/v1/audio/transcriptions \
+  -F "file=@audio.wav" \
+  -F "response_format=json"</pre>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-2">OpenAI-compatible API endpoint</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let selectedFile = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkHealth();
+            loadModels();
+            loadLanguages();
+            setInterval(checkHealth, 10000);
+        });
+
+        // API calls
+        async function checkHealth() {
+            try {
+                const res = await fetch('/health');
+                const data = await res.json();
+                
+                const dot = document.getElementById('status-dot');
+                const text = document.getElementById('status-text');
+                
+                if (data.status === 'ready') {
+                    dot.className = 'w-2 h-2 rounded-full bg-green-400';
+                    text.textContent = 'Ready - Model loaded';
+                } else {
+                    dot.className = 'w-2 h-2 rounded-full bg-yellow-400 pulse-dot';
+                    text.textContent = 'No model loaded - Download one below';
+                }
+                
+                if (data.engine) {
+                    document.getElementById('info-device').textContent = data.engine.device || '-';
+                    document.getElementById('info-model').textContent = data.engine.model || '-';
+                }
+                
+                // Load stats
+                const statsRes = await fetch('/v1/stats');
+                const stats = await statsRes.json();
+                document.getElementById('info-requests').textContent = stats.total_requests;
+                
+            } catch (e) {
+                document.getElementById('status-dot').className = 'w-2 h-2 rounded-full bg-red-400';
+                document.getElementById('status-text').textContent = 'Server unreachable';
+            }
+        }
+
+        async function loadModels() {
+            try {
+                const res = await fetch('/v1/models');
+                const data = await res.json();
+                
+                const container = document.getElementById('models-list');
+                container.innerHTML = '';
+                
+                data.data.forEach(model => {
+                    const card = document.createElement('div');
+                    card.className = 'model-card bg-slate-800 rounded-lg p-3 transition-all';
+                    
+                    const statusBadge = model.is_downloaded 
+                        ? '<span class="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded-full">Ready</span>'
+                        : '<span class="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full">Not downloaded</span>';
+                    
+                    const actionBtn = model.is_downloaded
+                        ? `<button onclick="loadModel('${model.id}')" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg">Load</button>`
+                        : `<button onclick="downloadModel('${model.id}')" class="text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded-lg">Download</button>`;
+                    
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-medium text-sm">${model.name}</span>
+                            ${statusBadge}
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-slate-500">${model.size_mb} MB</span>
+                            ${actionBtn}
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (e) {
+                console.error('Failed to load models:', e);
+            }
+        }
+
+        async function loadLanguages() {
+            try {
+                const res = await fetch('/v1/languages');
+                const data = await res.json();
+                const select = document.getElementById('opt-language');
+                select.innerHTML = '';
+                
+                Object.entries(data.languages).forEach(([code, name]) => {
+                    const option = document.createElement('option');
+                    option.value = code;
+                    option.textContent = name;
+                    select.appendChild(option);
+                });
+            } catch (e) {
+                console.error('Failed to load languages:', e);
+            }
+        }
+
+        async function downloadModel(modelId) {
+            const btn = event.target;
+            btn.textContent = 'Downloading...';
+            btn.disabled = true;
+            
+            try {
+                const res = await fetch(`/v1/models/download/${modelId}`, { method: 'POST' });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    btn.textContent = 'Done!';
+                    setTimeout(loadModels, 1000);
+                } else {
+                    btn.textContent = 'Failed';
+                    alert(data.detail || 'Download failed');
+                }
+            } catch (e) {
+                btn.textContent = 'Error';
+                alert('Download failed: ' + e.message);
+            }
+            
+            setTimeout(() => { btn.disabled = false; }, 2000);
+        }
+
+        async function loadModel(modelId) {
+            const btn = event.target;
+            btn.textContent = 'Loading...';
+            btn.disabled = true;
+            
+            try {
+                const res = await fetch(`/v1/models/load/${modelId}`, { method: 'POST' });
+                if (res.ok) {
+                    btn.textContent = 'Active';
+                    checkHealth();
+                    loadModels();
+                } else {
+                    const data = await res.json();
+                    btn.textContent = 'Failed';
+                    alert(data.detail || 'Load failed');
+                }
+            } catch (e) {
+                btn.textContent = 'Error';
+            }
+            
+            setTimeout(() => { btn.disabled = false; }, 2000);
+        }
+
+        // Tab switching
+        function switchTab(tab) {
+            document.getElementById('panel-record').classList.toggle('hidden', tab !== 'record');
+            document.getElementById('panel-upload').classList.toggle('hidden', tab !== 'upload');
+            document.getElementById('tab-record').className = tab === 'record' 
+                ? 'px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium'
+                : 'px-4 py-2 rounded-lg bg-slate-700 text-slate-300 text-sm font-medium hover:bg-slate-600';
+            document.getElementById('tab-upload').className = tab === 'upload'
+                ? 'px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium'
+                : 'px-4 py-2 rounded-lg bg-slate-700 text-slate-300 text-sm font-medium hover:bg-slate-600';
+        }
+
+        // Recording
+        async function toggleRecording() {
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    
+                    mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        stream.getTracks().forEach(t => t.stop());
+                        await transcribeBlob(audioBlob);
+                    };
+                    
+                    mediaRecorder.start();
+                    isRecording = true;
+                    
+                    document.getElementById('btn-record').classList.add('bg-red-600', 'recording');
+                    document.getElementById('icon-mic').classList.add('hidden');
+                    document.getElementById('icon-stop').classList.remove('hidden');
+                    document.getElementById('waveform').classList.remove('hidden');
+                    document.getElementById('record-status').textContent = 'Recording... Click to stop';
+                    
+                } catch (e) {
+                    alert('Microphone access denied. Please allow microphone access.');
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                
+                document.getElementById('btn-record').classList.remove('bg-red-600', 'recording');
+                document.getElementById('icon-mic').classList.remove('hidden');
+                document.getElementById('icon-stop').classList.add('hidden');
+                document.getElementById('waveform').classList.add('hidden');
+                document.getElementById('record-status').textContent = 'Processing...';
+            }
+        }
+
+        // File upload
+        function handleFileSelect(event) {
+            selectedFile = event.target.files[0];
+            if (selectedFile) {
+                document.getElementById('file-info').classList.remove('hidden');
+                document.getElementById('file-info').textContent = `Selected: ${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(1)} MB)`;
+                document.getElementById('btn-transcribe').classList.remove('hidden');
+            }
+        }
+
+        async function transcribeFile() {
+            if (!selectedFile) return;
+            
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('language', document.getElementById('opt-language').value);
+            formData.append('response_format', document.getElementById('opt-format').value);
+            
+            await sendTranscription(formData);
+        }
+
+        async function transcribeBlob(blob) {
+            const formData = new FormData();
+            formData.append('file', blob, 'recording.webm');
+            formData.append('language', document.getElementById('opt-language').value);
+            formData.append('response_format', document.getElementById('opt-format').value);
+            
+            await sendTranscription(formData);
+        }
+
+        async function sendTranscription(formData) {
+            const resultArea = document.getElementById('result-area');
+            resultArea.innerHTML = '<span class="text-slate-500 italic">Transcribing...</span>';
+            
+            try {
+                const res = await fetch('/v1/audio/transcriptions', {
+                    method: 'POST',
+                    body: formData,
+                });
+                
+                if (!res.ok) {
+                    const err = await res.json();
+                    resultArea.innerHTML = `<span class="text-red-400">Error: ${err.detail || 'Transcription failed'}</span>`;
+                    return;
+                }
+                
+                const format = document.getElementById('opt-format').value;
+                
+                if (format === 'text' || format === 'srt' || format === 'vtt') {
+                    const text = await res.text();
+                    resultArea.textContent = text;
+                } else {
+                    const data = await res.json();
+                    
+                    if (format === 'verbose_json') {
+                        resultArea.textContent = JSON.stringify(data, null, 2);
+                        document.getElementById('result-meta').classList.remove('hidden');
+                        document.getElementById('meta-language').textContent = `Language: ${data.language}`;
+                        document.getElementById('meta-duration').textContent = `Duration: ${data.duration?.toFixed(1)}s`;
+                    } else {
+                        resultArea.textContent = data.text;
+                    }
+                }
+                
+                document.getElementById('record-status').textContent = 'Click to start recording';
+                checkHealth();
+                
+            } catch (e) {
+                resultArea.innerHTML = `<span class="text-red-400">Error: ${e.message}</span>`;
+            }
+        }
+
+        function copyResult() {
+            const text = document.getElementById('result-area').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                // Brief visual feedback
+                const btn = event.currentTarget;
+                btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Copied!';
+                setTimeout(() => {
+                    btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg> Copy';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
