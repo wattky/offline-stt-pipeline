@@ -4,9 +4,10 @@
 
 **[Try the Live App → https://offlinestt.com](https://offlinestt.com)**
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![License](https://img.shields.io/badge/license-Dual%20(Free%20%2B%20Commercial)-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
 ![Live](https://img.shields.io/badge/live-offlinestt.com-cyan.svg)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-yellow.svg)](https://buymeacoffee.com/offlinestt)
 
 Offline STT Pipeline is a lightweight desktop application and service that runs a local OpenAI-compatible REST API for speech-to-text transcription. It acts as a drop-in replacement for cloud STT services, allowing Voice AI applications to process audio locally without internet access, saving on API costs and ensuring absolute privacy.
 
@@ -152,6 +153,22 @@ python build.py --onefile
 
 The output will be in the `dist/` directory.
 
+## Support the Project
+
+If this tool saves you money or time, consider supporting development:
+
+☕ **[Buy Me a Coffee](https://buymeacoffee.com/offlinestt)** — One-time support, any amount
+
+⭐ **Star this repo** — Helps others discover the project
+
+🐛 **Report issues** — Help us improve
+
 ## License
 
-MIT License. See LICENSE file for details.
+**Dual License** — Free for personal/non-commercial use (MIT). Commercial use requires a paid license. See [LICENSE](LICENSE) for details.
+
+| Use Case | Cost |
+|----------|------|
+| Personal / Learning / Open-source | Free |
+| Startups (<5 people) | Free |
+| Commercial / Enterprise | [Contact us](mailto:offlinestt@proton.me) |
